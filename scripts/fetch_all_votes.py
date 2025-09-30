@@ -151,7 +151,7 @@ def save_to_json(votes):
     """
     Lagre voteringer til JSON-fil.
     """
-    output_dir = "public/data"
+    output_dir = "data"
     os.makedirs(output_dir, exist_ok=True)
     
     output_file = os.path.join(output_dir, "votes.json")
