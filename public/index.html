@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stortingets Voteringer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #1a1a1a; 
+            color: #e0e0e0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .vote-details {
+            display: none;
+            padding: 20px;
+            border-top: 1px solid #333;
+            background-color: #1f1f1f;
+        }
+        .vote-details.active { display: block; }
+        .vote-count {
+            cursor: pointer;
+            transition: background-color 0.2s;
+            flex: 1;
+            padding: 12px;
+            background-color: #1a1a1a;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+        .vote-count:hover { background-color: #2a2a2a; }
+        .stemme-liste { max-height: 300px; overflow-y: auto; }
+        .stemme-item { padding: 6px 0; font-size: 14px; }
+        .loading { text-align: center; padding: 40px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header style="margin-bottom: 40px; padding-top: 20px;">
+            <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 8px; color: #ffffff;">
+                Stortingets voteringer
+            </h1>
+            <p style="color: #888; font-size: 15px;">
+                Siste voteringer fra data.stortinget.no
+            </p>
+        </header>
+
+        <div style="margin-bottom: 30px; padding: 20px; background-color: #252525; border-radius: 4px;">
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Søk..."
+                style="width: 100%; padding: 10px 12px; margin-bottom: 12px; background-color: #1a1a1a; border: 1px solid #333; border-radius: 3px; color: #e0e0e0; font-size: 14px;"
+            />
+            
+            <div style="display: flex; gap: 12px;">
+                <select id="statusFilter" style="flex: 1; padding: 8px 10px; background-color: #1a1a1a; border: 1px solid #333; border-radius: 3px; color: #e0e0e0; font-size: 14px;">
+                    <option value="all">Alle</option>
+                    <option value="vedtatt">Vedtatt</option>
+                    <option value="forkastet">Forkastet</option>
+                </select>
+
+                <select id="yearFilter" style="flex: 1; padding: 8px 10px; background-color: #1a1a1a; border: 1px solid #333; border-radius: 3px; color: #e0e0e0; font-size: 14px;">
+                    <option value="all">Alle år</option>
+                </select>
+            </div>
+
+            <div id="counter" style="margin-top: 12px; font-size: 13px; color: #666;">
+                Laster...
+            </div>
+        </div>
+
+        <div id="votesList" class="loading">
+            Laster voteringer...
+        </div>
+
+        <footer style="margin-top: 60px; padding-top: 30px; padding-bottom: 30px; border-top: 1px solid #333; text-align: center;">
+            <p style="font-size: 13px; color: #666; margin-bottom: 8px;">
+                Data fra <a href="https://data.stortinget.no" target="_blank" style="color: #6b9bd1; text-decoration: none;">data.stortinget.no</a>
+            </p>
+            <p style="font-size: 12px; color: #555;">
+                Oppdateres daglig
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        let allVotes = [];
+        let filteredVotes = [];
+
+        // Load votes from JSON
+        async function loadVotes() {
+            try {
+                const response = await fetch('/data/votes.json');
+                const data = await response.json();
+                allVotes = data.voteringer || [];
+                
+                // Populate year filter
+                const years = [...new Set(allVotes.map(v => new Date(v.tid).getFullYear()))].sort((a, b) => b - a);
+                const yearFilter = document.getElementById('yearFilter');
+                years.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    yearFilter.appendChild(option);
+                });
+                
+                filterVotes();
+            } catch (err) {
+                document.getElementById('votesList').innerHTML = '<div style="text-align: center; color: #e89090;">Kunne ikke laste voteringer</div>';
+            }
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('nb-NO', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        window.toggleDetails = function(voteId) {
+            const details = document.getElementById('details-' + voteId);
+            if (details) {
+                details.classList.toggle('active');
+            }
+        }
+
+        function renderVotes() {
+            const container = document.getElementById('votesList');
+            
+            if (filteredVotes.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 60px 20px; color: #666;">Ingen voteringer funnet</div>';
+                return;
+            }
+
+            container.innerHTML = filteredVotes.map(vote => {
+                const borderColor = vote.vedtatt ? '#2d7a3e' : '#a83232';
+                const statusBg = vote.vedtatt ? '#1f5129' : '#5c1f1f';
+                const statusColor = vote.vedtatt ? '#7bc88a' : '#e89090';
+                const statusText = vote.vedtatt ? 'Vedtatt' : 'Forkastet';
+                
+                const forStemmer = vote.stemmer ? vote.stemmer.filter(s => s.stemme === 'for') : [];
+                const motStemmer = vote.stemmer ? vote.stemmer.filter(s => s.stemme === 'mot') : [];
+                const ikkeTilstede = vote.stemmer ? vote.stemmer.filter(s => s.stemme === 'ikke_tilstede') : [];
+                
+                let stemmerHTML = '';
+                if (vote.stemmer && vote.stemmer.length > 0) {
+                    stemmerHTML = `
+                        <div id="details-${vote.id}" class="vote-details">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <h3 style="font-size: 16px; font-weight: 600; color: #7bc88a; margin-bottom: 12px;">For (${forStemmer.length})</h3>
+                                    <div class="stemme-liste">
+                                        ${forStemmer.map(s => `<div class="stemme-item">${s.navn} <span style="color: #666;">(${s.parti})</span></div>`).join('')}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 16px; font-weight: 600; color: #e89090; margin-bottom: 12px;">Mot (${motStemmer.length})</h3>
+                                    <div class="stemme-liste">
+                                        ${motStemmer.map(s => `<div class="stemme-item">${s.navn} <span style="color: #666;">(${s.parti})</span></div>`).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                            ${ikkeTilstede.length > 0 ? `
+                                <div style="margin-top: 20px;">
+                                    <h3 style="font-size: 16px; font-weight: 600; color: #888; margin-bottom: 12px;">Ikke tilstede (${ikkeTilstede.length})</h3>
+                                    <div style="font-size: 14px; color: #666;">
+                                        ${ikkeTilstede.map(s => s.navn).join(', ')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                
+                return `
+                    <div style="margin-bottom: 20px; background-color: #252525; border-radius: 4px; border-left: 4px solid ${borderColor}; overflow: hidden;">
+                        <div style="padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <span style="display: inline-block; padding: 4px 10px; background-color: ${statusBg}; color: ${statusColor}; font-size: 13px; font-weight: 500; border-radius: 3px;">
+                                    ${statusText}
+                                </span>
+                                <time style="font-size: 13px; color: #666;">
+                                    ${formatDate(vote.tid)}
+                                </time>
+                            </div>
+                            <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 16px; line-height: 1.4; color: #ffffff;">
+                                ${vote.sakstittel || vote.tema}
+                            </h2>
+                            ${(vote.for > 0 || vote.mot > 0) ? `
+                                <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                                    <div class="vote-count" onclick="toggleDetails('${vote.id}')">
+                                        <div style="font-size: 12px; color: #888; margin-bottom: 4px;">For</div>
+                                        <div style="font-size: 28px; font-weight: 600; color: #7bc88a;">${vote.for}</div>
+                                        <div style="font-size: 11px; color: #666; margin-top: 4px;">Klikk for detaljer</div>
+                                    </div>
+                                    <div class="vote-count" onclick="toggleDetails('${vote.id}')">
+                                        <div style="font-size: 12px; color: #888; margin-bottom: 4px;">Mot</div>
+                                        <div style="font-size: 28px; font-weight: 600; color: #e89090;">${vote.mot}</div>
+                                        <div style="font-size: 11px; color: #666; margin-top: 4px;">Klikk for detaljer</div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            <a href="https://www.stortinget.no/no/Saker-og-publikasjoner/Saker/Sak/?p=${vote.sak_id}" target="_blank" style="color: #6b9bd1; text-decoration: none; font-size: 14px; display: inline-block;">
+                                Les mer på stortinget.no →
+                            </a>
+                        </div>
+                        ${stemmerHTML}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterVotes() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const year = document.getElementById('yearFilter').value;
+            
+            filteredVotes = allVotes.filter(vote => {
+                const matchesSearch = !searchTerm || 
+                    (vote.sakstittel && vote.sakstittel.toLowerCase().includes(searchTerm)) ||
+                    (vote.tema && vote.tema.toLowerCase().includes(searchTerm));
+                
+                const matchesStatus = status === 'all' || 
+                    (status === 'vedtatt' && vote.vedtatt) ||
+                    (status === 'forkastet' && !vote.vedtatt);
+                
+                const voteYear = new Date(vote.tid).getFullYear().toString();
+                const matchesYear = year === 'all' || voteYear === year;
+                
+                return matchesSearch && matchesStatus && matchesYear;
+            });
+            
+            document.getElementById('counter').textContent = `${filteredVotes.length} av ${allVotes.length} voteringer`;
+            renderVotes();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', filterVotes);
+        document.getElementById('statusFilter').addEventListener('change', filterVotes);
+        document.getElementById('yearFilter').addEventListener('change', filterVotes);
+
+        // Load votes on page load
+        loadVotes();
+    </script>
+</body>
+</html>
