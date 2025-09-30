@@ -93,7 +93,7 @@
         // Load votes from JSON
         async function loadVotes() {
             try {
-                const response = await fetch('/data/votes.json');
+                const response = await fetch('./data/votes.json');
                 const data = await response.json();
                 allVotes = data.voteringer || [];
                 
