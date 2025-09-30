@@ -1,9 +1,0 @@
-2025-09-30 11:20:30,097 - INFO - Henter møter fra 2025-08-31 til 2025-09-30
-2025-09-30 11:20:30,099 - DEBUG - Starting new HTTPS connection (1): data.stortinget.no:443
-2025-09-30 11:20:30,440 - DEBUG - https://data.stortinget.no:443 "GET /eksport/moter?fra=2025-08-31&til=2025-09-30 HTTP/1.1" 200 4151
-2025-09-30 11:20:30,476 - INFO - Fant 0 møter
-2025-09-30 11:20:30,477 - INFO - Henter publikasjoner fra 2025-08-01 til 2025-09-30
-2025-09-30 11:20:30,478 - DEBUG - Starting new HTTPS connection (1): data.stortinget.no:443
-2025-09-30 11:20:48,278 - DEBUG - https://data.stortinget.no:443 "GET /eksport/publikasjoner?publikasjontype=innstilling&fra=2025-08-01&til=2025-09-30 HTTP/1.1" 200 13289
-2025-09-30 11:20:48,285 - INFO - Publikasjonskolonner: ['respons_dato_tid', 'versjon', 'publikasjon', 'sesjon_id']
-2025-09-30 11:20:48,287 - INFO - Ingen saker fra møter/publikasjoner. Prøver direkte fra sesjon.
