@@ -5,487 +5,186 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stortingets Voteringer</title>
     <style>
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        /* Tema variabler */
-        :root {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #252525;
-            --bg-tertiary: #1f1f1f;
-            --bg-hover: #2a2a2a;
-            --text-primary: #ffffff;
-            --text-secondary: #e0e0e0;
-            --text-tertiary: #888;
-            --text-muted: #666;
-            --border-color: #333;
-            --success: #7bc88a;
-            --success-bg: #1f5129;
-            --error: #e89090;
-            --error-bg: #5c1f1f;
-            --accent: #2563eb;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px 20px;
         }
         
-        [data-theme="light"] {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f5f5f5;
-            --bg-tertiary: #e5e5e5;
-            --bg-hover: #e0e0e0;
-            --text-primary: #1a1a1a;
-            --text-secondary: #2a2a2a;
-            --text-tertiary: #666;
-            --text-muted: #888;
-            --border-color: #d0d0d0;
-            --success: #16a34a;
-            --success-bg: #dcfce7;
-            --error: #dc2626;
-            --error-bg: #fee2e2;
-            --accent: #2563eb;
-        }
-        
-        nav {
-            background-color: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            padding: 16px 0;
-            margin-bottom: 30px;
-        }
-        
-        nav ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            gap: 24px;
-            flex-wrap: wrap;
+        .container {
             max-width: 900px;
             margin: 0 auto;
-            padding: 0 20px;
         }
         
-        nav a {
-            color: var(--text-tertiary);
+        h1 {
+            font-size: 48px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 60px;
+            line-height: 1.6;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 60px;
+            border-left: 2px solid #333;
+            padding-left: 20px;
+        }
+        
+        .stat {
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 36px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1px;
+            background: #222;
+            border: 1px solid #222;
+            margin-bottom: 60px;
+        }
+        
+        .link-card {
+            background: #0a0a0a;
+            padding: 32px 24px;
             text-decoration: none;
-            font-size: 15px;
-            transition: color 0.2s;
+            color: inherit;
+            transition: background 0.2s;
         }
         
-        nav a:hover, nav a.active {
-            color: var(--accent);
+        .link-card:hover {
+            background: #1a1a1a;
         }
         
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background-color: var(--bg-primary);
-            color: var(--text-secondary);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            transition: background-color 0.3s, color 0.3s;
+        .link-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #fff;
+            margin-bottom: 8px;
         }
         
-        .container { 
-            max-width: 900px; 
-            margin: 0 auto; 
-            padding: 20px;
+        .link-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .footer {
+            text-align: center;
+            padding-top: 60px;
+            border-top: 1px solid #222;
+            color: #666;
+            font-size: 13px;
         }
         
         @media (max-width: 768px) {
-            .container { padding: 12px; }
-            h1 { font-size: 24px !important; }
-            .stats-grid { grid-template-columns: 1fr !important; }
-            .filter-grid { flex-direction: column !important; }
-        }
-        
-        .vote-details {
-            display: none;
-            padding: 20px;
-            border-top: 1px solid var(--border-color);
-            background-color: var(--bg-tertiary);
-            animation: slideDown 0.3s ease-out;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                max-height: 0;
-            }
-            to {
-                opacity: 1;
-                max-height: 2000px;
-            }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .vote-item {
-            animation: fadeIn 0.4s ease-out;
-        }
-        
-        .vote-details.active { display: block; }
-        
-        .vote-count {
-            cursor: pointer;
-            transition: all 0.2s;
-            flex: 1;
-            padding: 12px;
-            background-color: var(--bg-tertiary);
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .vote-count:hover { 
-            background-color: var(--bg-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        .vote-count:active {
-            transform: translateY(0);
-        }
-        
-        .stemme-liste { 
-            max-height: 300px; 
-            overflow-y: auto;
-        }
-        
-        .stemme-item { 
-            padding: 6px 0; 
-            font-size: 14px;
-            transition: padding-left 0.2s;
-        }
-        
-        .stemme-item:hover {
-            padding-left: 8px;
-        }
-        
-        .loading { 
-            text-align: center; 
-            padding: 40px;
-        }
-        
-        .spinner {
-            border: 3px solid var(--border-color);
-            border-top: 3px solid var(--accent);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .theme-toggle {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        
-        .theme-toggle:hover {
-            background: var(--bg-hover);
-            transform: translateY(-1px);
-        }
-        
-        .btn-primary {
-            padding: 12px 32px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .btn-primary:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        
-        .btn-primary:active {
-            transform: translateY(0);
+            h1 { font-size: 32px; }
+            .stats { flex-direction: column; gap: 24px; }
+            .links { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <nav>
-        <ul>
-            <li><a href="index.html" class="active">🏠 Voteringer</a></li>
-            <li><a href="stats.html">📊 Statistikk</a></li>
-            <li><a href="partier.html">🎯 Partier</a></li>
-            <li><a href="representanter.html">👤 Representanter</a></li>
-            <li style="margin-left: auto;"><button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙 Mørk</button></li>
-        </ul>
-    </nav>
-    
     <div class="container">
-        <header style="margin-bottom: 40px; padding-top: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-                <div>
-                    <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
-                        Stortingets voteringer
-                    </h1>
-                    <p style="color: var(--text-tertiary); font-size: 15px;">
-                        Siste voteringer fra data.stortinget.no
-                    </p>
-                </div>
+        <h1>Stortingets voteringer</h1>
+        <p class="subtitle">
+            Åpen informasjon om alle avstemninger på Stortinget. Data oppdateres daglig fra data.stortinget.no.
+        </p>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number" id="totalVotes">-</div>
+                <div class="stat-label">voteringer</div>
             </div>
-        </header>
-
-        <div style="margin-bottom: 30px; padding: 20px; background-color: var(--bg-secondary); border-radius: 4px; transition: background-color 0.3s;">
-            <input
-                type="text"
-                id="searchInput"
-                placeholder="Søk..."
-                style="width: 100%; padding: 10px 12px; margin-bottom: 12px; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-secondary); font-size: 14px; transition: all 0.2s;"
-            />
+            <div class="stat">
+                <div class="stat-number" id="totalReps">-</div>
+                <div class="stat-label">representanter</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="totalParties">-</div>
+                <div class="stat-label">partier</div>
+            </div>
+        </div>
+        
+        <div class="links">
+            <a href="index.html" class="link-card">
+                <div class="link-title">Voteringer</div>
+                <div class="link-desc">Alle avstemninger med søk og filter</div>
+            </a>
             
-            <div class="filter-grid" style="display: flex; gap: 12px;">
-                <select id="statusFilter" style="flex: 1; padding: 8px 10px; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-secondary); font-size: 14px;">
-                    <option value="all">Alle</option>
-                    <option value="vedtatt">Vedtatt</option>
-                    <option value="forkastet">Forkastet</option>
-                </select>
-
-                <select id="yearFilter" style="flex: 1; padding: 8px 10px; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-secondary); font-size: 14px;">
-                    <option value="all">Alle år</option>
-                </select>
-            </div>
-
-            <div id="counter" style="margin-top: 12px; font-size: 13px; color: var(--text-muted);">
-                Laster...
-            </div>
+            <a href="stats.html" class="link-card">
+                <div class="link-title">Statistikk</div>
+                <div class="link-desc">Grafer og analyse</div>
+            </a>
+            
+            <a href="partier.html" class="link-card">
+                <div class="link-title">Partier</div>
+                <div class="link-desc">Hvem stemmer sammen</div>
+            </a>
+            
+            <a href="representanter.html" class="link-card">
+                <div class="link-title">Representanter</div>
+                <div class="link-desc">Søk og sammenlign</div>
+            </a>
         </div>
-
-        <div id="votesList" class="loading">
-            <div class="spinner"></div>
-            <p style="margin-top: 16px; color: var(--text-tertiary);">Laster voteringer...</p>
+        
+        <div class="footer">
+            Data fra Stortingets åpne API
         </div>
-
-        <footer style="margin-top: 60px; padding-top: 30px; padding-bottom: 30px; border-top: 1px solid var(--border-color); text-align: center;">
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
-                Data fra <a href="https://data.stortinget.no" target="_blank" style="color: var(--accent); text-decoration: none;">data.stortinget.no</a>
-            </p>
-            <p style="font-size: 12px; color: var(--text-muted);">
-                Oppdateres daglig
-            </p>
-        </footer>
     </div>
-
+    
     <script>
-        let allVotes = [];
-        let filteredVotes = [];
-        let displayedCount = 25; // Vis 25 om gangen
-        const VOTES_PER_PAGE = 25;
-
-        // Load votes from JSON
-        async function loadVotes() {
+        async function loadStats() {
             try {
                 const response = await fetch('./data/votes.json');
                 const data = await response.json();
-                allVotes = data.voteringer || [];
+                const votes = data.voteringer || [];
                 
-                // Populate year filter
-                const years = [...new Set(allVotes.map(v => new Date(v.tid).getFullYear()))].sort((a, b) => b - a);
-                const yearFilter = document.getElementById('yearFilter');
-                years.forEach(year => {
-                    const option = document.createElement('option');
-                    option.value = year;
-                    option.textContent = year;
-                    yearFilter.appendChild(option);
+                document.getElementById('totalVotes').textContent = votes.length.toLocaleString('nb-NO');
+                
+                const reps = new Set();
+                const parties = new Set();
+                votes.forEach(v => {
+                    if (v.stemmer) {
+                        v.stemmer.forEach(s => {
+                            if (s.navn) reps.add(s.navn);
+                            if (s.parti) parties.add(s.parti);
+                        });
+                    }
                 });
                 
-                filterVotes();
+                document.getElementById('totalReps').textContent = reps.size;
+                document.getElementById('totalParties').textContent = parties.size;
+                
             } catch (err) {
-                document.getElementById('votesList').innerHTML = '<div style="text-align: center; color: var(--error);">Kunne ikke laste voteringer</div>';
+                console.error(err);
             }
         }
-
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('nb-NO', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-
-        window.toggleDetails = function(voteId) {
-            const details = document.getElementById('details-' + voteId);
-            if (details) {
-                details.classList.toggle('active');
-            }
-        }
-
-        function renderVotes() {
-            const container = document.getElementById('votesList');
-            
-            if (filteredVotes.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 60px 20px; color: #666;">Ingen voteringer funnet</div>';
-                return;
-            }
-
-            // Vis bare de første displayedCount voteringene
-            const votesToShow = filteredVotes.slice(0, displayedCount);
-
-            container.innerHTML = votesToShow.map(vote => {
-                const borderColor = vote.vedtatt ? 'var(--success)' : 'var(--error)';
-                const statusBg = vote.vedtatt ? 'var(--success-bg)' : 'var(--error-bg)';
-                const statusColor = vote.vedtatt ? 'var(--success)' : 'var(--error)';
-                const statusText = vote.vedtatt ? 'Vedtatt' : 'Forkastet';
-                
-                const forStemmer = vote.stemmer ? vote.stemmer.filter(s => s.stemme === 'for') : [];
-                const motStemmer = vote.stemmer ? vote.stemmer.filter(s => s.stemme === 'mot') : [];
-                const ikkeTilstede = vote.stemmer ? vote.stemmer.filter(s => s.stemme === 'ikke_tilstede') : [];
-                
-                let stemmerHTML = '';
-                if (vote.stemmer && vote.stemmer.length > 0) {
-                    stemmerHTML = `
-                        <div id="details-${vote.id}" class="vote-details">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                <div>
-                                    <h3 style="font-size: 16px; font-weight: 600; color: var(--success); margin-bottom: 12px;">For (${forStemmer.length})</h3>
-                                    <div class="stemme-liste">
-                                        ${forStemmer.map(s => `<div class="stemme-item" style="color: var(--text-secondary);">${s.navn} <span style="color: var(--text-muted);">(${s.parti})</span></div>`).join('')}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 style="font-size: 16px; font-weight: 600; color: var(--error); margin-bottom: 12px;">Mot (${motStemmer.length})</h3>
-                                    <div class="stemme-liste">
-                                        ${motStemmer.map(s => `<div class="stemme-item" style="color: var(--text-secondary);">${s.navn} <span style="color: var(--text-muted);">(${s.parti})</span></div>`).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                            ${ikkeTilstede.length > 0 ? `
-                                <div style="margin-top: 20px;">
-                                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-tertiary); margin-bottom: 12px;">Ikke tilstede (${ikkeTilstede.length})</h3>
-                                    <div style="font-size: 14px; color: var(--text-muted);">
-                                        ${ikkeTilstede.map(s => s.navn).join(', ')}
-                                    </div>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }Mot (${motStemmer.length})</h3>
-                                    <div class="stemme-liste">
-                                        ${motStemmer.map(s => `<div class="stemme-item">${s.navn} <span style="color: #666;">(${s.parti})</span></div>`).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                            ${ikkeTilstede.length > 0 ? `
-                                <div style="margin-top: 20px;">
-                                    <h3 style="font-size: 16px; font-weight: 600; color: #888; margin-bottom: 12px;">Ikke tilstede (${ikkeTilstede.length})</h3>
-                                    <div style="font-size: 14px; color: #666;">
-                                        ${ikkeTilstede.map(s => s.navn).join(', ')}
-                                    </div>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }
-                
-                return `
-                    <div class="vote-item" style="margin-bottom: 20px; background-color: var(--bg-secondary); border-radius: 4px; border-left: 4px solid ${borderColor}; overflow: hidden;">
-                        <div style="padding: 20px;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                                <span style="display: inline-block; padding: 4px 10px; background-color: ${statusBg}; color: ${statusColor}; font-size: 13px; font-weight: 500; border-radius: 3px;">
-                                    ${statusText}
-                                </span>
-                                <time style="font-size: 13px; color: var(--text-muted);">
-                                    ${formatDate(vote.tid)}
-                                </time>
-                            </div>
-                            <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 16px; line-height: 1.4; color: var(--text-primary);">
-                                ${vote.sakstittel || vote.tema}
-                            </h2>
-                            ${(vote.for > 0 || vote.mot > 0) ? `
-                                <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-                                    <div class="vote-count" onclick="toggleDetails('${vote.id}')">
-                                        <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">For</div>
-                                        <div style="font-size: 28px; font-weight: 600; color: var(--success);">${vote.for}</div>
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Klikk for detaljer</div>
-                                    </div>
-                                    <div class="vote-count" onclick="toggleDetails('${vote.id}')">
-                                        <div style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px;">Mot</div>
-                                        <div style="font-size: 28px; font-weight: 600; color: var(--error);">${vote.mot}</div>
-                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Klikk for detaljer</div>
-                                    </div>
-                                </div>
-                            ` : ''}
-                            <a href="https://www.stortinget.no/no/Saker-og-publikasjoner/Saker/Sak/?p=${vote.sak_id}" target="_blank" style="color: var(--accent); text-decoration: none; font-size: 14px; display: inline-block;">
-                                Les mer på stortinget.no →
-                            </a>
-                        </div>
-                        ${stemmerHTML}
-                    </div>
-                `;
-            }).join('');
-            
-            // Legg til "Vis flere" knapp hvis det er flere voteringer
-            if (displayedCount < filteredVotes.length) {
-                container.innerHTML += `
-                    <div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
-                        <button onclick="loadMore()" class="btn-primary">
-                            Vis flere voteringer (${filteredVotes.length - displayedCount} til)
-                        </button>
-                    </div>
-                `;
-            }
-        }
-
-        function loadMore() {
-            displayedCount += VOTES_PER_PAGE;
-            renderVotes();
-            // Scroll litt ned til de nye voteringene
-            window.scrollBy({ top: 300, behavior: 'smooth' });
-        }
-
-        function filterVotes() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const status = document.getElementById('statusFilter').value;
-            const year = document.getElementById('yearFilter').value;
-            
-            filteredVotes = allVotes.filter(vote => {
-                const matchesSearch = !searchTerm || 
-                    (vote.sakstittel && vote.sakstittel.toLowerCase().includes(searchTerm)) ||
-                    (vote.tema && vote.tema.toLowerCase().includes(searchTerm));
-                
-                const matchesStatus = status === 'all' || 
-                    (status === 'vedtatt' && vote.vedtatt) ||
-                    (status === 'forkastet' && !vote.vedtatt);
-                
-                const voteYear = new Date(vote.tid).getFullYear().toString();
-                const matchesYear = year === 'all' || voteYear === year;
-                
-                return matchesSearch && matchesStatus && matchesYear;
-            });
-            
-            // Reset til 25 når man filtrerer
-            displayedCount = VOTES_PER_PAGE;
-            
-            document.getElementById('counter').textContent = `${filteredVotes.length} av ${allVotes.length} voteringer`;
-            renderVotes();
-        }
-
-        document.getElementById('searchInput').addEventListener('input', filterVotes);
-        document.getElementById('statusFilter').addEventListener('change', filterVotes);
-        document.getElementById('yearFilter').addEventListener('change', filterVotes);
-
-        // Load votes on page load
-        loadVotes();
+        
+        loadStats();
     </script>
 </body>
 </html>
