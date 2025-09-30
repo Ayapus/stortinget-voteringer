@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Representanter - Stortingets Voteringer</title>
+    <style>
+        * { box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #1f1f1f;
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --text-tertiary: #888;
+            --border-color: #333;
+            --accent: #2563eb;
+            --success: #7bc88a;
+            --error: #e89090;
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #e5e5e5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #2a2a2a;
+            --text-tertiary: #666;
+            --border-color: #d0d0d0;
+            --accent: #2563eb;
+            --success: #16a34a;
+            --error: #dc2626;
+        }
+        
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            transition: background-color 0.3s;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        nav {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            margin-bottom: 30px;
+        }
+        
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        
+        nav a {
+            color: var(--text-tertiary);
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover, nav a.active {
+            color: var(--accent);
+        }
+        
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .rep-card {
+            background-color: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .rep-card:hover {
+            background-color: var(--bg-tertiary);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        
+        .rep-card.selected {
+            border-color: var(--accent);
+            background-color: var(--bg-tertiary);
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            nav ul { flex-direction: column; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="index.html">🏠 Voteringer</a></li>
+                <li><a href="stats.html">📊 Statistikk</a></li>
+                <li><a href="partier.html">🎯 Partier</a></li>
+                <li><a href="representanter.html" class="active">👤 Representanter</a></li>
+                <li style="margin-left: auto;"><button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙 Mørk</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header style="margin-bottom: 40px;">
+            <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+                Representanter
+            </h1>
+            <p style="color: var(--text-tertiary); font-size: 15px;">
+                Søk og sammenlign stortingsrepresentanter
+            </p>
+        </header>
+
+        <div id="loading" style="text-align: center; padding: 60px; color: var(--text-tertiary);">
+            Laster representanter...
+        </div>
+
+        <div id="content" style="display: none;">
+            <!-- Søk -->
+            <div style="background-color: var(--bg-secondary); padding: 24px; border-radius: 8px; margin-bottom: 30px;">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Søk etter representant..."
+                    style="width: 100%; padding: 12px; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-secondary); font-size: 16px;"
+                />
+                <div style="margin-top: 12px; font-size: 13px; color: var(--text-tertiary);" id="searchCount">
+                    -
+                </div>
+            </div>
+
+            <!-- Sammenlign modus -->
+            <div style="background-color: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-bottom: 30px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="compareMode" onchange="toggleCompareMode()" style="width: 18px; height: 18px;">
+                    <span style="font-size: 15px; color: var(--text-secondary);">Sammenlign to representanter</span>
+                </label>
+            </div>
+
+            <!-- Representant liste -->
+            <div id="representantListe" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 30px;"></div>
+
+            <!-- Sammenligning -->
+            <div id="comparison" style="display: none;"></div>
+
+            <!-- Detaljer -->
+            <div id="details" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const partiColors = {
+            'A': '#E8112D', 'Ap': '#E8112D',
+            'H': '#0065F1',
+            'FrP': '#003D6B',
+            'SP': '#00843D', 'Sp': '#00843D',
+            'SV': '#C8195B',
+            'V': '#006666',
+            'KrF': '#FFD700',
+            'MDG': '#48A062',
+            'R': '#D40429', 'Rød': '#D40429',
+            'PP': '#722282'
+        };
+
+        let allVotes = [];
+        let allReps = [];
+        let filteredReps = [];
+        let compareMode = false;
+        let selectedReps = [];
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const newTheme = current === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            document.getElementById('themeToggle').textContent = newTheme === 'light' ? '🌙 Mørk' : '☀️ Lys';
+        }
+
+        function loadTheme() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            const btn = document.getElementById('themeToggle');
+            if (btn) btn.textContent = theme === 'light' ? '🌙 Mørk' : '☀️ Lys';
+        }
+
+        loadTheme();
+
+        async function loadData() {
+            try {
+                const response = await fetch('./data/votes.json');
+                const data = await response.json();
+                allVotes = data.voteringer || [];
+                
+                processRepresentants();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            } catch (err) {
+                document.getElementById('loading').innerHTML = '<div style="color: red;">Kunne ikke laste data</div>';
+            }
+        }
+
+        function processRepresentants() {
+            const repStats = {};
+
+            allVotes.forEach(vote => {
+                if (!vote.stemmer) return;
+                
+                vote.stemmer.forEach(s => {
+                    if (!s.navn || !s.parti) return;
+                    
+                    if (!repStats[s.navn]) {
+                        repStats[s.navn] = {
+                            navn: s.navn,
+                            parti: s.parti,
+                            for: 0,
+                            mot: 0,
+                            ikkeTilstede: 0,
+                            total: 0
+                        };
+                    }
+                    
+                    repStats[s.navn].total++;
+                    if (s.stemme === 'for') repStats[s.navn].for++;
+                    else if (s.stemme === 'mot') repStats[s.navn].mot++;
+                    else if (s.stemme === 'ikke_tilstede') repStats[s.navn].ikkeTilstede++;
+                });
+            });
+
+            allReps = Object.values(repStats).sort((a, b) => a.navn.localeCompare(b.navn));
+            filteredReps = allReps;
+            renderRepresentants();
+        }
+
+        function renderRepresentants() {
+            const container = document.getElementById('representantListe');
+            
+            container.innerHTML = filteredReps.map(rep => {
+                const color = partiColors[rep.parti] || '#666';
+                const forProsent = Math.round((rep.for / rep.total) * 100);
+                const fravaer = Math.round((rep.ikkeTilstede / rep.total) * 100);
+                const isSelected = selectedReps.includes(rep.navn);
+                
+                return `
+                    <div class="rep-card ${isSelected ? 'selected' : ''}" onclick="handleRepClick('${rep.navn.replace(/'/g, "\\'")}')">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div>
+                                <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0; color: var(--text-primary);">${rep.navn}</h3>
+                                <div style="font-size: 14px; font-weight: 600; color: ${color};">${rep.parti}</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px;">
+                            ${rep.total} voteringer
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                            <div>
+                                <span style="color: var(--text-tertiary);">For:</span>
+                                <span style="color: var(--success); font-weight: 600;"> ${forProsent}%</span>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-tertiary);">Fravær:</span>
+                                <span style="color: var(--error); font-weight: 600;"> ${fravaer}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('searchCount').textContent = `Viser ${filteredReps.length} av ${allReps.length} representanter`;
+        }
+
+        function handleRepClick(navn) {
+            if (compareMode) {
+                if (selectedReps.includes(navn)) {
+                    selectedReps = selectedReps.filter(n => n !== navn);
+                } else if (selectedReps.length < 2) {
+                    selectedReps.push(navn);
+                }
+                
+                renderRepresentants();
+                
+                if (selectedReps.length === 2) {
+                    showComparison();
+                } else {
+                    document.getElementById('comparison').style.display = 'none';
+                }
+            } else {
+                showDetails(navn);
+            }
+        }
+
+        function toggleCompareMode() {
+            compareMode = document.getElementById('compareMode').checked;
+            selectedReps = [];
+            document.getElementById('comparison').style.display = 'none';
+            document.getElementById('details').style.display = 'none';
+            renderRepresentants();
+        }
+
+        function showDetails(navn) {
+            const rep = allReps.find(r => r.navn === navn);
+            if (!rep) return;
+            
+            const color = partiColors[rep.parti] || '#666';
+            const forProsent = Math.round((rep.for / rep.total) * 100);
+            const motProsent = Math.round((rep.mot / rep.total) * 100);
+            const fravaer = Math.round((rep.ikkeTilstede / rep.total) * 100);
+            
+            // Finn alle stemmer for denne representanten
+            const repVotes = [];
+            allVotes.forEach(vote => {
+                if (!vote.stemmer) return;
+                const stemme = vote.stemmer.find(s => s.navn === navn);
+                if (stemme) {
+                    repVotes.push({
+                        ...vote,
+                        stemme: stemme.stemme
+                    });
+                }
+            });
+            
+            const container = document.getElementById('details');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div style="background-color: var(--bg-secondary); padding: 24px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px;">
+                        <div>
+                            <h2 style="font-size: 28px; font-weight: 600; margin: 0 0 8px 0; color: var(--text-primary);">${rep.navn}</h2>
+                            <div style="font-size: 20px; font-weight: 600; color: ${color};">${rep.parti}</div>
+                        </div>
+                        <button onclick="document.getElementById('details').style.display='none'" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                            Lukk
+                        </button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div style="background-color: var(--bg-tertiary); padding: 16px; border-radius: 6px;">
+                            <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px;">Totalt voteringer</div>
+                            <div style="font-size: 32px; font-weight: 700; color: var(--text-primary);">${rep.total}</div>
+                        </div>
+                        <div style="background-color: var(--bg-tertiary); padding: 16px; border-radius: 6px;">
+                            <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px;">Stemte for</div>
+                            <div style="font-size: 32px; font-weight: 700; color: var(--success);">${forProsent}%</div>
+                        </div>
+                        <div style="background-color: var(--bg-tertiary); padding: 16px; border-radius: 6px;">
+                            <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px;">Stemte mot</div>
+                            <div style="font-size: 32px; font-weight: 700; color: var(--error);">${motProsent}%</div>
+                        </div>
+                        <div style="background-color: var(--bg-tertiary); padding: 16px; border-radius: 6px;">
+                            <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px;">Fravær</div>
+                            <div style="font-size: 32px; font-weight: 700; color: var(--text-tertiary);">${fravaer}%</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">Siste 20 voteringer</h3>
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        ${repVotes.slice(0, 20).map(v => {
+                            const stemmeColor = v.stemme === 'for' ? 'var(--success)' : v.stemme === 'mot' ? 'var(--error)' : 'var(--text-tertiary)';
+                            const stemmeTekst = v.stemme === 'for' ? 'FOR' : v.stemme === 'mot' ? 'MOT' : 'IKKE TILSTEDE';
+                            return `
+                                <div style="padding: 12px; border-bottom: 1px solid var(--border-color);">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
+                                        <div style="flex: 1;">
+                                            <div style="font-size: 15px; color: var(--text-primary); margin-bottom: 4px;">${v.sakstittel || v.tema}</div>
+                                            <div style="font-size: 12px; color: var(--text-tertiary);">${new Date(v.tid).toLocaleDateString('nb-NO')}</div>
+                                        </div>
+                                        <div style="font-size: 13px; font-weight: 600; color: ${stemmeColor}; white-space: nowrap;">
+                                            ${stemmeTekst}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showComparison() {
+            const rep1 = allReps.find(r => r.navn === selectedReps[0]);
+            const rep2 = allReps.find(r => r.navn === selectedReps[1]);
+            
+            if (!rep1 || !rep2) return;
+            
+            // Finn hvor ofte de stemmer likt
+            let enig = 0;
+            let uenig = 0;
+            
+            allVotes.forEach(vote => {
+                if (!vote.stemmer) return;
+                const s1 = vote.stemmer.find(s => s.navn === rep1.navn);
+                const s2 = vote.stemmer.find(s => s.navn === rep2.navn);
+                
+                if (s1 && s2 && s1.stemme !== 'ikke_tilstede' && s2.stemme !== 'ikke_tilstede') {
+                    if (s1.stemme === s2.stemme) enig++;
+                    else uenig++;
+                }
+            });
+            
+            const total = enig + uenig;
+            const enigProsent = total > 0 ? Math.round((enig / total) * 100) : 0;
+            
+            const color1 = partiColors[rep1.parti] || '#666';
+            const color2 = partiColors[rep2.parti] || '#666';
+            
+            const container = document.getElementById('comparison');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div style="background-color: var(--bg-secondary); padding: 24px; border-radius: 8px; margin-top: 30px;">
+                    <h2 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary);">Sammenligning</h2>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px; align-items: center; margin-bottom: 24px;">
+                        <div style="text-align: center;">
+                            <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">${rep1.navn}</h3>
+                            <div style="font-size: 16px; font-weight: 600; color: ${color1};">${rep1.parti}</div>
+                        </div>
+                        <div style="font-size: 24px; color: var(--text-tertiary);">vs</div>
+                        <div style="text-align: center;">
+                            <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">${rep2.navn}</h3>
+                            <div style="font-size: 16px; font-weight: 600; color: ${color2};">${rep2.parti}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 24px; background-color: var(--bg-tertiary); border-radius: 8px; margin-bottom: 24px;">
+                        <div style="font-size: 14px; color: var(--text-tertiary); margin-bottom: 8px;">Enighet</div>
+                        <div style="font-size: 48px; font-weight: 700; color: ${enigProsent > 60 ? 'var(--success)' : enigProsent < 40 ? 'var(--error)' : 'var(--text-primary)'};">
+                            ${enigProsent}%
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-tertiary); margin-top: 8px;">
+                            Enige i ${enig} av ${total} voteringer
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">${rep1.navn}</h4>
+                            <div style="background-color: var(--bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="font-size: 12px; color: var(--text-tertiary);">Stemte for</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--success);">${Math.round((rep1.for/rep1.total)*100)}%</div>
+                            </div>
+                            <div style="background-color: var(--bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="font-size: 12px; color: var(--text-tertiary);">Stemte mot</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--error);">${Math.round((rep1.mot/rep1.total)*100)}%</div>
+                            </div>
+                            <div style="background-color: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 12px; color: var(--text-tertiary);">Fravær</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--text-tertiary);">${Math.round((rep1.ikkeTilstede/rep1.total)*100)}%</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">${rep2.navn}</h4>
+                            <div style="background-color: var(--bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="font-size: 12px; color: var(--text-tertiary);">Stemte for</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--success);">${Math.round((rep2.for/rep2.total)*100)}%</div>
+                            </div>
+                            <div style="background-color: var(--bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="font-size: 12px; color: var(--text-tertiary);">Stemte mot</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--error);">${Math.round((rep2.mot/rep2.total)*100)}%</div>
+                            </div>
+                            <div style="background-color: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 12px; color: var(--text-tertiary);">Fravær</div>
+                                <div style="font-size: 24px; font-weight: 600; color: var(--text-tertiary);">${Math.round((rep2.ikkeTilstede/rep2.total)*100)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            filteredReps = allReps.filter(r => 
+                r.navn.toLowerCase().includes(term) || 
+                r.parti.toLowerCase().includes(term)
+            );
+            renderRepresentants();
+        });
+
+        loadData();
+    </script>
+</body>
+</html>

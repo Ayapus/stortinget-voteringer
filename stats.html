@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistikk - Stortingets Voteringer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body style="margin: 0; padding: 0; background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+        
+        <header style="margin-bottom: 40px; padding-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 8px; color: #ffffff;">
+                        Statistikk
+                    </h1>
+                    <p style="color: #888; font-size: 15px;">
+                        Analyse av Stortingets voteringer
+                    </p>
+                </div>
+                <a href="index.html" style="color: #6b9bd1; text-decoration: none; font-size: 15px;">← Tilbake til voteringer</a>
+            </div>
+        </header>
+
+        <!-- Laster melding -->
+        <div id="loading" style="text-align: center; padding: 60px; color: #888;">
+            Laster statistikk...
+        </div>
+
+        <!-- Statistikk innhold -->
+        <div id="statsContent" style="display: none;">
+            
+            <!-- Oversikt kort -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px;">
+                <div style="background-color: #252525; padding: 24px; border-radius: 8px; border-left: 4px solid #2563eb;">
+                    <div style="font-size: 14px; color: #888; margin-bottom: 8px;">Totalt antall voteringer</div>
+                    <div id="totalVotes" style="font-size: 36px; font-weight: 600; color: #ffffff;">-</div>
+                </div>
+                <div style="background-color: #252525; padding: 24px; border-radius: 8px; border-left: 4px solid #2d7a3e;">
+                    <div style="font-size: 14px; color: #888; margin-bottom: 8px;">Vedtatt</div>
+                    <div id="vedtattCount" style="font-size: 36px; font-weight: 600; color: #7bc88a;">-</div>
+                    <div id="vedtattPercent" style="font-size: 14px; color: #666; margin-top: 4px;">-</div>
+                </div>
+                <div style="background-color: #252525; padding: 24px; border-radius: 8px; border-left: 4px solid #a83232;">
+                    <div style="font-size: 14px; color: #888; margin-bottom: 8px;">Forkastet</div>
+                    <div id="forkastetCount" style="font-size: 36px; font-weight: 600; color: #e89090;">-</div>
+                    <div id="forkastetPercent" style="font-size: 14px; color: #666; margin-top: 4px;">-</div>
+                </div>
+                <div style="background-color: #252525; padding: 24px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    <div style="font-size: 14px; color: #888; margin-bottom: 8px;">Gjennomsnittlig margin</div>
+                    <div id="avgMargin" style="font-size: 36px; font-weight: 600; color: #fbbf24;">-</div>
+                    <div style="font-size: 14px; color: #666; margin-top: 4px;">stemmer forskjell</div>
+                </div>
+            </div>
+
+            <!-- Grafer -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px;">
+                <div style="background-color: #252525; padding: 24px; border-radius: 8px;">
+                    <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #ffffff;">Voteringer per år</h2>
+                    <canvas id="yearChart"></canvas>
+                </div>
+                <div style="background-color: #252525; padding: 24px; border-radius: 8px;">
+                    <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #ffffff;">Vedtatt vs Forkastet</h2>
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Mest kontroversielle -->
+            <div style="background-color: #252525; padding: 24px; border-radius: 8px; margin-bottom: 40px;">
+                <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #ffffff;">Mest kontroversielle voteringer</h2>
+                <div style="font-size: 13px; color: #666; margin-bottom: 16px;">Tetteste avstemninger (minst margin)</div>
+                <div id="controversial"></div>
+            </div>
+
+            <!-- Voteringer per måned -->
+            <div style="background-color: #252525; padding: 24px; border-radius: 8px; margin-bottom: 40px;">
+                <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #ffffff;">Voteringer over tid</h2>
+                <canvas id="timeChart"></canvas>
+            </div>
+
+            <!-- Største flertall -->
+            <div style="background-color: #252525; padding: 24px; border-radius: 8px;">
+                <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #ffffff;">Største flertall</h2>
+                <div style="font-size: 13px; color: #666; margin-bottom: 16px;">Voteringer med størst enighet</div>
+                <div id="landslides"></div>
+            </div>
+
+        </div>
+
+        <footer style="margin-top: 60px; padding-top: 30px; padding-bottom: 30px; border-top: 1px solid #333; text-align: center;">
+            <p style="font-size: 13px; color: #666; margin-bottom: 8px;">
+                Data fra <a href="https://data.stortinget.no" target="_blank" style="color: #6b9bd1; text-decoration: none;">data.stortinget.no</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        let allVotes = [];
+
+        async function loadStats() {
+            try {
+                const response = await fetch('./data/votes.json');
+                const data = await response.json();
+                allVotes = data.voteringer || [];
+                
+                calculateStats();
+                createCharts();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('statsContent').style.display = 'block';
+            } catch (err) {
+                document.getElementById('loading').innerHTML = '<div style="color: #e89090;">Kunne ikke laste statistikk</div>';
+            }
+        }
+
+        function calculateStats() {
+            const total = allVotes.length;
+            const vedtatt = allVotes.filter(v => v.vedtatt).length;
+            const forkastet = total - vedtatt;
+            
+            // Gjennomsnittlig margin
+            const margins = allVotes
+                .filter(v => v.for > 0 && v.mot > 0)
+                .map(v => Math.abs(v.for - v.mot));
+            const avgMargin = margins.length > 0 
+                ? Math.round(margins.reduce((a, b) => a + b, 0) / margins.length)
+                : 0;
+
+            document.getElementById('totalVotes').textContent = total.toLocaleString('nb-NO');
+            document.getElementById('vedtattCount').textContent = vedtatt.toLocaleString('nb-NO');
+            document.getElementById('vedtattPercent').textContent = `${Math.round(vedtatt/total*100)}% av alle`;
+            document.getElementById('forkastetCount').textContent = forkastet.toLocaleString('nb-NO');
+            document.getElementById('forkastetPercent').textContent = `${Math.round(forkastet/total*100)}% av alle`;
+            document.getElementById('avgMargin').textContent = avgMargin;
+
+            // Mest kontroversielle
+            const controversial = allVotes
+                .filter(v => v.for > 0 && v.mot > 0)
+                .map(v => ({...v, margin: Math.abs(v.for - v.mot)}))
+                .sort((a, b) => a.margin - b.margin)
+                .slice(0, 10);
+
+            document.getElementById('controversial').innerHTML = controversial.map(v => `
+                <div style="padding: 12px 0; border-bottom: 1px solid #333;">
+                    <div style="font-size: 15px; color: #ffffff; margin-bottom: 4px;">${v.sakstittel || v.tema}</div>
+                    <div style="font-size: 13px; color: #888;">
+                        <span style="color: #7bc88a;">${v.for} for</span> - 
+                        <span style="color: #e89090;">${v.mot} mot</span> - 
+                        <span style="color: #fbbf24;">Margin: ${v.margin}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Største flertall
+            const landslides = allVotes
+                .filter(v => v.for > 0 && v.mot > 0)
+                .map(v => ({...v, margin: Math.abs(v.for - v.mot)}))
+                .sort((a, b) => b.margin - a.margin)
+                .slice(0, 10);
+
+            document.getElementById('landslides').innerHTML = landslides.map(v => `
+                <div style="padding: 12px 0; border-bottom: 1px solid #333;">
+                    <div style="font-size: 15px; color: #ffffff; margin-bottom: 4px;">${v.sakstittel || v.tema}</div>
+                    <div style="font-size: 13px; color: #888;">
+                        <span style="color: #7bc88a;">${v.for} for</span> - 
+                        <span style="color: #e89090;">${v.mot} mot</span> - 
+                        <span style="color: #fbbf24;">Margin: ${v.margin}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function createCharts() {
+            // Voteringer per år
+            const yearCounts = {};
+            allVotes.forEach(v => {
+                const year = new Date(v.tid).getFullYear();
+                yearCounts[year] = (yearCounts[year] || 0) + 1;
+            });
+            
+            new Chart(document.getElementById('yearChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(yearCounts).sort(),
+                    datasets: [{
+                        label: 'Antall voteringer',
+                        data: Object.keys(yearCounts).sort().map(y => yearCounts[y]),
+                        backgroundColor: '#2563eb'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            ticks: { color: '#888' },
+                            grid: { color: '#333' }
+                        },
+                        x: { 
+                            ticks: { color: '#888' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Status pie chart
+            const vedtatt = allVotes.filter(v => v.vedtatt).length;
+            const forkastet = allVotes.length - vedtatt;
+
+            new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Vedtatt', 'Forkastet'],
+                    datasets: [{
+                        data: [vedtatt, forkastet],
+                        backgroundColor: ['#2d7a3e', '#a83232']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e0e0e0' }
+                        }
+                    }
+                }
+            });
+
+            // Voteringer over tid (månedlig)
+            const monthCounts = {};
+            allVotes.forEach(v => {
+                const date = new Date(v.tid);
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthCounts[key] = (monthCounts[key] || 0) + 1;
+            });
+
+            const sortedMonths = Object.keys(monthCounts).sort();
+            
+            new Chart(document.getElementById('timeChart'), {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Voteringer per måned',
+                        data: sortedMonths.map(m => monthCounts[m]),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0' } }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            ticks: { color: '#888' },
+                            grid: { color: '#333' }
+                        },
+                        x: { 
+                            ticks: { 
+                                color: '#888',
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>

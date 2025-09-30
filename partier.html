@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parti-analyse - Stortingets Voteringer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #1f1f1f;
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --text-tertiary: #888;
+            --border-color: #333;
+            --accent: #2563eb;
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #e5e5e5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #2a2a2a;
+            --text-tertiary: #666;
+            --border-color: #d0d0d0;
+            --accent: #2563eb;
+        }
+        
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            transition: background-color 0.3s;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        nav {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            margin-bottom: 30px;
+        }
+        
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        
+        nav a {
+            color: var(--text-tertiary);
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover, nav a.active {
+            color: var(--accent);
+        }
+        
+        .parti-card {
+            background-color: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        
+        .parti-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            nav ul { flex-direction: column; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="index.html">🏠 Voteringer</a></li>
+                <li><a href="stats.html">📊 Statistikk</a></li>
+                <li><a href="partier.html" class="active">🎯 Partier</a></li>
+                <li><a href="representanter.html">👤 Representanter</a></li>
+                <li style="margin-left: auto;"><button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙 Mørk</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header style="margin-bottom: 40px;">
+            <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+                Parti-analyse
+            </h1>
+            <p style="color: var(--text-tertiary); font-size: 15px;">
+                Hvordan stemmer partiene på Stortinget?
+            </p>
+        </header>
+
+        <div id="loading" style="text-align: center; padding: 60px; color: var(--text-tertiary);">
+            Laster parti-data...
+        </div>
+
+        <div id="content" style="display: none;">
+            <!-- Parti oversikt -->
+            <div style="margin-bottom: 40px;">
+                <h2 style="font-size: 24px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);">Partier på Stortinget</h2>
+                <div id="partiCards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>
+            </div>
+
+            <!-- Enighet mellom partier -->
+            <div style="background-color: var(--bg-secondary); padding: 24px; border-radius: 8px; margin-bottom: 40px;">
+                <h2 style="font-size: 24px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);">Enighet mellom partier</h2>
+                <p style="color: var(--text-tertiary); margin-bottom: 20px; font-size: 14px;">Hvor ofte stemmer partiene likt? (prosent)</p>
+                <div id="enighetsMatrise" style="overflow-x: auto;"></div>
+            </div>
+
+            <!-- Mest enige par -->
+            <div style="background-color: var(--bg-secondary); padding: 24px; border-radius: 8px; margin-bottom: 40px;">
+                <h2 style="font-size: 24px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);">Mest enige partier</h2>
+                <div id="mestEnige"></div>
+            </div>
+
+            <!-- Mest uenige par -->
+            <div style="background-color: var(--bg-secondary); padding: 24px; border-radius: 8px;">
+                <h2 style="font-size: 24px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);">Mest uenige partier</h2>
+                <div id="mestUenige"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const partiColors = {
+            'A': '#E8112D', 'Ap': '#E8112D',
+            'H': '#0065F1',
+            'FrP': '#003D6B',
+            'SP': '#00843D', 'Sp': '#00843D',
+            'SV': '#C8195B',
+            'V': '#006666',
+            'KrF': '#FFD700',
+            'MDG': '#48A062',
+            'R': '#D40429', 'Rød': '#D40429',
+            'PP': '#722282',
+            'PDK': '#00529C',
+            'K': '#F0C800'
+        };
+
+        let allVotes = [];
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const newTheme = current === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            document.getElementById('themeToggle').textContent = newTheme === 'light' ? '🌙 Mørk' : '☀️ Lys';
+        }
+
+        function loadTheme() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            const btn = document.getElementById('themeToggle');
+            if (btn) btn.textContent = theme === 'light' ? '🌙 Mørk' : '☀️ Lys';
+        }
+
+        loadTheme();
+
+        async function loadData() {
+            try {
+                const response = await fetch('./data/votes.json');
+                const data = await response.json();
+                allVotes = data.voteringer || [];
+                
+                analyzeParties();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            } catch (err) {
+                document.getElementById('loading').innerHTML = '<div style="color: red;">Kunne ikke laste data</div>';
+            }
+        }
+
+        function analyzeParties() {
+            // Samle parti-statistikk
+            const partiStats = {};
+            const partiPairs = {};
+
+            allVotes.forEach(vote => {
+                if (!vote.stemmer || vote.stemmer.length === 0) return;
+
+                // Gruppe stemmer etter parti
+                const partiVotes = {};
+                vote.stemmer.forEach(s => {
+                    if (!s.parti) return;
+                    if (!partiVotes[s.parti]) partiVotes[s.parti] = { for: 0, mot: 0 };
+                    if (s.stemme === 'for') partiVotes[s.parti].for++;
+                    else if (s.stemme === 'mot') partiVotes[s.parti].mot++;
+                });
+
+                // Beregn hva hvert parti stemte (flertall)
+                const partiStance = {};
+                Object.keys(partiVotes).forEach(parti => {
+                    const pv = partiVotes[parti];
+                    partiStance[parti] = pv.for > pv.mot ? 'for' : 'mot';
+                    
+                    if (!partiStats[parti]) {
+                        partiStats[parti] = { total: 0, for: 0, mot: 0 };
+                    }
+                    partiStats[parti].total++;
+                    if (partiStance[parti] === 'for') partiStats[parti].for++;
+                    else partiStats[parti].mot++;
+                });
+
+                // Sammenlign par av partier
+                const partier = Object.keys(partiStance);
+                for (let i = 0; i < partier.length; i++) {
+                    for (let j = i + 1; j < partier.length; j++) {
+                        const p1 = partier[i];
+                        const p2 = partier[j];
+                        const key = [p1, p2].sort().join('-');
+                        
+                        if (!partiPairs[key]) {
+                            partiPairs[key] = { enig: 0, uenig: 0 };
+                        }
+                        
+                        if (partiStance[p1] === partiStance[p2]) {
+                            partiPairs[key].enig++;
+                        } else {
+                            partiPairs[key].uenig++;
+                        }
+                    }
+                }
+            });
+
+            renderPartiCards(partiStats);
+            renderEnighetsMatrise(partiPairs, Object.keys(partiStats));
+            renderTopPairs(partiPairs);
+        }
+
+        function renderPartiCards(stats) {
+            const container = document.getElementById('partiCards');
+            const sortedPartier = Object.entries(stats).sort((a, b) => b[1].total - a[1].total);
+
+            container.innerHTML = sortedPartier.map(([parti, data]) => {
+                const color = partiColors[parti] || '#666';
+                const forProsent = Math.round((data.for / data.total) * 100);
+                
+                return `
+                    <div class="parti-card" style="border-left-color: ${color};">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <h3 style="font-size: 24px; font-weight: 700; margin: 0; color: ${color};">${parti}</h3>
+                            <div style="font-size: 28px; font-weight: 700; color: var(--text-primary);">${data.total}</div>
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px;">Deltok i voteringer</div>
+                        <div style="display: flex; gap: 12px; margin-top: 16px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 12px; color: var(--text-tertiary);">Stemte for</div>
+                                <div style="font-size: 20px; font-weight: 600; color: #7bc88a;">${forProsent}%</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 12px; color: var(--text-tertiary);">Stemte mot</div>
+                                <div style="font-size: 20px; font-weight: 600; color: #e89090;">${100 - forProsent}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderEnighetsMatrise(pairs, partier) {
+            const container = document.getElementById('enighetsMatrise');
+            
+            let html = '<table style="border-collapse: collapse; width: 100%; font-size: 13px;">';
+            html += '<tr><th style="padding: 8px;"></th>';
+            partier.forEach(p => {
+                const color = partiColors[p] || '#666';
+                html += `<th style="padding: 8px; color: ${color}; font-weight: 600;">${p}</th>`;
+            });
+            html += '</tr>';
+
+            partier.forEach((p1, i) => {
+                const color1 = partiColors[p1] || '#666';
+                html += `<tr><td style="padding: 8px; color: ${color1}; font-weight: 600;">${p1}</td>`;
+                
+                partier.forEach((p2, j) => {
+                    if (i === j) {
+                        html += '<td style="padding: 8px; text-align: center; background-color: var(--bg-tertiary);">-</td>';
+                    } else {
+                        const key = [p1, p2].sort().join('-');
+                        const data = pairs[key];
+                        if (data) {
+                            const total = data.enig + data.uenig;
+                            const prosent = Math.round((data.enig / total) * 100);
+                            const bgColor = prosent > 70 ? 'rgba(123, 200, 138, 0.2)' : prosent < 30 ? 'rgba(232, 144, 144, 0.2)' : 'var(--bg-tertiary)';
+                            html += `<td style="padding: 8px; text-align: center; background-color: ${bgColor}; color: var(--text-secondary);">${prosent}%</td>`;
+                        } else {
+                            html += '<td style="padding: 8px; text-align: center;">-</td>';
+                        }
+                    }
+                });
+                
+                html += '</tr>';
+            });
+            html += '</table>';
+            
+            container.innerHTML = html;
+        }
+
+        function renderTopPairs(pairs) {
+            const pairsList = Object.entries(pairs).map(([key, data]) => {
+                const [p1, p2] = key.split('-');
+                const total = data.enig + data.uenig;
+                const prosent = Math.round((data.enig / total) * 100);
+                return { p1, p2, prosent, enig: data.enig, total };
+            });
+
+            // Mest enige
+            const mestEnige = pairsList.sort((a, b) => b.prosent - a.prosent).slice(0, 10);
+            document.getElementById('mestEnige').innerHTML = mestEnige.map(p => {
+                const color1 = partiColors[p.p1] || '#666';
+                const color2 = partiColors[p.p2] || '#666';
+                return `
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-size: 18px; font-weight: 600; color: ${color1};">${p.p1}</span>
+                                <span style="color: var(--text-tertiary);"> + </span>
+                                <span style="font-size: 18px; font-weight: 600; color: ${color2};">${p.p2}</span>
+                            </div>
+                            <div style="font-size: 24px; font-weight: 700; color: #7bc88a;">${p.prosent}%</div>
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-tertiary); margin-top: 4px;">
+                            Enige i ${p.enig} av ${p.total} voteringer
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Mest uenige
+            const mestUenige = pairsList.sort((a, b) => a.prosent - b.prosent).slice(0, 10);
+            document.getElementById('mestUenige').innerHTML = mestUenige.map(p => {
+                const color1 = partiColors[p.p1] || '#666';
+                const color2 = partiColors[p.p2] || '#666';
+                return `
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-size: 18px; font-weight: 600; color: ${color1};">${p.p1}</span>
+                                <span style="color: var(--text-tertiary);"> vs </span>
+                                <span style="font-size: 18px; font-weight: 600; color: ${color2};">${p.p2}</span>
+                            </div>
+                            <div style="font-size: 24px; font-weight: 700; color: #e89090;">${p.prosent}%</div>
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-tertiary); margin-top: 4px;">
+                            Enige i kun ${p.enig} av ${p.total} voteringer
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
