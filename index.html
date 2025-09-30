@@ -89,6 +89,8 @@
     <script>
         let allVotes = [];
         let filteredVotes = [];
+        let displayedCount = 25; // Vis 25 om gangen
+        const VOTES_PER_PAGE = 25;
 
         // Load votes from JSON
         async function loadVotes() {
@@ -139,7 +141,10 @@
                 return;
             }
 
-            container.innerHTML = filteredVotes.map(vote => {
+            // Vis bare de første displayedCount voteringene
+            const votesToShow = filteredVotes.slice(0, displayedCount);
+
+            container.innerHTML = votesToShow.map(vote => {
                 const borderColor = vote.vedtatt ? '#2d7a3e' : '#a83232';
                 const statusBg = vote.vedtatt ? '#1f5129' : '#5c1f1f';
                 const statusColor = vote.vedtatt ? '#7bc88a' : '#e89090';
@@ -215,6 +220,34 @@
                     </div>
                 `;
             }).join('');
+            
+            // Legg til "Vis flere" knapp hvis det er flere voteringer
+            if (displayedCount < filteredVotes.length) {
+                container.innerHTML += `
+                    <div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
+                        <button onclick="loadMore()" style="
+                            padding: 12px 32px;
+                            background-color: #2563eb;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            font-size: 16px;
+                            font-weight: 500;
+                            cursor: pointer;
+                            transition: background-color 0.2s;
+                        " onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'">
+                            Vis flere voteringer (${filteredVotes.length - displayedCount} til)
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function loadMore() {
+            displayedCount += VOTES_PER_PAGE;
+            renderVotes();
+            // Scroll litt ned til de nye voteringene
+            window.scrollBy({ top: 300, behavior: 'smooth' });
         }
 
         function filterVotes() {
@@ -236,6 +269,9 @@
                 
                 return matchesSearch && matchesStatus && matchesYear;
             });
+            
+            // Reset til 25 når man filtrerer
+            displayedCount = VOTES_PER_PAGE;
             
             document.getElementById('counter').textContent = `${filteredVotes.length} av ${allVotes.length} voteringer`;
             renderVotes();
